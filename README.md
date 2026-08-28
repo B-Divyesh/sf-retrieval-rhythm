@@ -31,12 +31,15 @@ Vite prints the local URL. No environment variables or external service are requ
 ## Test and build
 
 ```sh
+npm ci
+npm run lint
+npm run typecheck
 npm test
 npm run build
 npm run test:e2e
 ```
 
-`npm test` runs deterministic scheduler and answer-matching tests. `npm run test:e2e` builds the production app and runs the full recall, persistence, accessibility, 390 px mobile, and offline flows in Chromium. Playwright is pinned to 1.58.2.
+`npm test` runs deterministic scheduler, answer-matching, and import-integrity tests. `npm run typecheck` runs TypeScript without emitting files; `npm run lint` runs ESLint. `npm run test:e2e` builds the production app and runs the full recall, persistence, keyboard, accessibility, 390 px mobile, offline, and import-recovery flows in Chromium. Playwright is pinned to 1.58.2.
 
 The exact deploy command is:
 
@@ -50,7 +53,7 @@ Static output lands in `dist/`, with `dist/index.html` at its root. Deploy that 
 
 IndexedDB database `retrieval-rhythm` contains `collections`, `cards`, and append-only `reviews` stores. A first quick match returns in one day; later quick matches grow through 3, 7, 14, 30, and 60 days. A thoughtful match uses smaller steps. A mismatch returns in one minute, and a match after a retry returns in eight hours. This transparent heuristic is practice support, not a diagnosis or retention guarantee.
 
-JSON import replaces local data only after validation and explicit confirmation. Export before clearing site data or moving browsers.
+JSON import validates every collection, fact, review, and their links before it can ask for confirmation. A confirmed replacement also preserves the previous local snapshot until you restore it from the Library. Export before clearing site data or moving browsers.
 
 ## Product files
 

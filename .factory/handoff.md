@@ -1,71 +1,113 @@
-# Retrieval Rhythm — build handoff
+# Retrieval Rhythm — repair handoff
 
-> **Independent verification status: FAIL (2026-08-28).** Candidate
-> `0dff36430016ee79cefc35f4704837fb4d8f8f14` is deployed at
-> <https://retrieval-rhythm.sociobot.in> and byte-matches the tested build, but
-> it must not be released as accepted. A confirmed malformed import can replace
-> local data with inaccessible cards, and the required Sociobot license-verify
-> API rate-limit check returned 120/120 HTTP 200 responses in a rapid burst
-> (no 429 or `Retry-After`). Full independent evidence and remediation detail:
-> `.factory/verification.md`.
+Work order: `retrieval-rhythm-repair-1`
+Base verifier report: `.factory/verification.md` at candidate
+`0dff36430016ee79cefc35f4704837fb4d8f8f14`
+Repair commits: `cd7a8b3`, `a952f00`
 
-Work order: `retrieval-rhythm-build-1`
+## Release status
 
-Completed: 2026-08-28
+**Repository and static-host repairs: verified and deployed on 2026-08-28.**
 
-Artifact: static offline PWA (`dist/`)
+**Acceptance remains blocked by High-2 in the independent report:** the required
+per-client/product rate limiting belongs to the external Sociobot billing API,
+not this static PWA repository or its Azure Static Web App deployment. A fresh
+post-deploy 120-request invalid-license burst against
+`https://api.sociobot.in/api/v1/products/retrieval-rhythm/verify` completed in
+911 ms with `120 × 200`, `0 × 429`, and no `Retry-After`. No billing API or
+gateway policy was changed by this work order. The billing service owner must
+add and verify the 429 + `Retry-After` policy before this product can be marked
+release-accepted.
 
-## What shipped
+## What was repaired
 
-- A complete local-first recall loop: create a fact, type an answer, infer correctness from normalized text, measure response time/retries, persist the review, and show a one-screen “Due because…” explanation.
-- A transparent fixed scheduler with quick, thoughtful, retry, and mismatch paths. The product never asks for a confidence grade and never describes the heuristic as a learning diagnosis.
-- A usable 20–100 item library: individual add/edit/delete, tab-separated bulk entry, semicolon answer alternatives, due summaries, confirmed deletion, JSON import validation, JSON backup, and CSV export.
-- IndexedDB persistence for collections, facts, and append-only review events. State survives refresh, tab close, and installed/offline use.
-- Progress showing distinct practice days, typed match rate, upcoming recalls, and a non-punitive 28-day rhythm view.
-- Free tier with one complete collection and unlimited review. Rhythm+ ($12 one-time) adds multiple collections and the detailed review timeline.
-- Sociobot paid unlock contract: hosted checkout URL, query-string license capture and cleanup, `sb_license:retrieval-rhythm` storage, cached optimistic offline access, at-most-daily verification, invalid-license relock, and paste-to-restore.
-- PWA manifest, 192/512 maskable-capable icons, versioned service-worker app-shell cache, offline fallback, cache-first static assets, network-first navigation, and an update-ready toast.
-- Product-specific luminous glass visual system, responsive 390 px treatment, reduced-motion fallback, designed focus states, semantic landmarks, one H1, and keyboard shortcuts (`1` Review, `2` Library, `3` Progress outside fields).
-- Original generated recall landscape with source/provenance, 720 px (13 KB) and 1200 px (47 KB) WebP outputs. Hand-authored rhythm icon. No remote fonts, scripts, analytics, or copyrighted deck content.
-- Privacy and terms pages, researched brief, full README, and MIT license.
+- **High-1 import data loss: fixed.** `src/import.ts` now accepts only complete
+  version-1 backups: IDs are unique; collection, fact, and review fields are
+  checked; each fact must reference an imported collection; each review must
+  reference an imported fact and the same collection. Validation happens before
+  the confirmation dialog and before IndexedDB is touched, so the verifier’s
+  orphan-card payload cannot replace usable data.
+- A confirmed valid import atomically saves the pre-import collections, facts,
+  and reviews in IndexedDB. Library exposes “Restore data from before your last
+  import,” which requires a specific replacement confirmation and restores the
+  snapshot.
+- **Medium-1 static delivery: fixed.** `public/staticwebapp.config.json`
+  supplies a restrictive CSP and Permissions-Policy, immutable one-year caching
+  for `/assets/*`, and `no-cache` for `sw.js` so updates remain detectable.
+- **Low-1 manifest MIME: fixed.** The Static Web Apps `.webmanifest` MIME map
+  now produces `application/manifest+json` in production.
+- Added reproducible `lint` (ESLint) and `typecheck` scripts. The source keeps
+  the original Vite + TypeScript static PWA artifact and `dist/` deployment
+  root.
 
-## Verification
+## Exact regression coverage
 
-Run from a clean clone:
+- `tests/import.test.ts` has three deterministic cases: a complete connected
+  backup is accepted, an orphan fact is rejected, and a mismatched review
+  collection is rejected.
+- `tests/app.e2e.ts` recreates the verifier’s actual destructive case in
+  Chromium on desktop and 390 px mobile: after adding “Local fact,” it uploads
+  `tests/fixtures/orphan-import.json`, asserts no replace confirmation appears,
+  asserts the clear error, and asserts the local fact remains. It then imports
+  `valid-import.json`, sees the persisted restore control, restores, and proves
+  that “Local fact” returns and “Imported fact” is gone.
+
+## Verification performed
+
+Clean install and local quality gates, all on 2026-08-28:
 
 ```sh
-npm install
+npm ci
+npm run lint
+npm run typecheck
 npm test
 npm run build
 npm run test:e2e
 ```
 
-Results on 2026-08-28:
+- `npm ci`: 160 packages audited, 0 vulnerabilities.
+- Package/consumer check: not applicable; this artifact is a static browser PWA
+  and exposes no installable library package or server API.
+- Lint and typecheck: pass.
+- Unit/integration: 10/10 Vitest tests pass.
+- Production build: pass; `dist/index.html` is the deployment root. Current
+  payload is 33.95 KB JS (11.08 KB gzip) and 18.18 KB CSS (4.95 KB gzip), well
+  within static-product budgets.
+- Browser: 10/10 Playwright tests pass in Chromium across desktop and 390×844
+  mobile: core recall/persistence, axe WCAG 2 A/AA serious/critical scan, skip
+  link and number-key navigation, offline reload, and import regression/recovery.
+- Live PWA smoke at `https://retrieval-rhythm.sociobot.in`: service worker
+  controlled an online reload; after `context.setOffline(true)`, a 390 px reload
+  rendered the app, showed “Offline · changes stay local,” had no page/console
+  errors, and had no horizontal overflow.
+- `/opt/fleet/lib/verify-url.sh` live check: HTTP 200; title, `lang=en`, one
+  H1, main landmark, image alt text, and button labels all present; 868 ms
+  load; zero browser console/page errors.
+- Live response checks: root has CSP and Permissions-Policy; hashed JS has
+  `Cache-Control: public, max-age=31536000, immutable`; `sw.js` has
+  `Cache-Control: no-cache`; manifest has
+  `Content-Type: application/manifest+json` and `Cache-Control: no-cache`.
+- Live identity: SHA-256 of deployed `index.html` and hashed JS matches `dist/`.
+- Lighthouse 12.8.2 against the live mobile page: Performance 97,
+  Accessibility 100, Best Practices 100, SEO 100; FCP 1.0 s, LCP 1.2 s,
+  TBT 160 ms, CLS 0.078.
 
-- `npm test`: 7/7 Vitest tests passed (normalization, alternate answers, typo tolerance, mismatch retry, quick recall, retry recall, due formatting).
-- `npm run build`: passed; `dist/index.html` is at the deploy root.
-- Production bundle: 30.74 KB JS / 10.32 KB gzip; 18.18 KB CSS / 4.95 KB gzip; no font payload; largest hero 46.76 KB.
-- `npm run test:e2e`: 6/6 Playwright tests passed in Chromium—full add/review/persist flow, desktop + 390 px, axe WCAG A/AA scan, and explicit `context.setOffline(true)` reload.
-- `/opt/fleet/lib/verify-url.sh`: passed against the production preview; HTTP 200, title present, `lang=en`, one H1, main landmark, zero missing alt text, zero unlabeled buttons, zero console/page errors. Measured load: 538 ms locally.
-- Lighthouse 12.8.2 mobile, production preview: Performance 100, Accessibility 100, Best Practices 100, SEO 100. FCP 1.0 s, LCP 1.4 s, CLS 0, total blocking time 0 ms.
-- Visual review completed at 1440×1000 and 390×844. Generated art checked for text artifacts, seams, unintended marks, brands, and misleading content; none found.
+## Deployment
 
-## Decisions and deviations
+Deployed static `dist/` with:
 
-- The brief mentioned paid local export, but the attached paid-unlock contract explicitly forbids gating core data export. JSON backup and CSV export are therefore free; Rhythm+ is limited to multiple collections and advanced review history.
-- A one-minute mismatch interval is used instead of silently rotating an in-memory queue. This makes the retry timing durable across refreshes and plainly visible.
-- There is no AI generation, deck sharing, note editor, account, analytics, or sync, matching the brief’s non-goals and local-first constraint.
+```sh
+/opt/fleet/lib/deploy-static.sh retrieval-rhythm /work/repo/dist
+```
 
-## Release notes / known gaps
+Azure Static Web App `sf-retrieval-rhythm` accepted deployment
+`8d272558-00eb-4fb8-b4e7-703389faa42d`; production is
+<https://retrieval-rhythm.sociobot.in>.
 
-- The factory must register/configure the `retrieval-rhythm` product and its return URL in the Sociobot billing engine before checkout can complete. No product ID or payment-provider credential is embedded in this repository.
-- Local-only storage intentionally does not synchronize across devices. Users should use the free JSON export/import path to move or back up data.
-- The app reports practice patterns only. The timing heuristic has not been independently validated as a measure of long-term retention.
+## Known gap / next action
 
-## Deploy
-
-Build command: `npm run build`
-
-Publish directory: `dist/`
-
-The static host should serve `dist/index.html` at `/`. `/privacy/`, `/terms/`, `manifest.webmanifest`, `robots.txt`, and `sw.js` are already present in the build output. No infrastructure, DNS, billing, or secrets were changed by this work order.
+The only remaining release blocker is the external Sociobot API rate-limit
+policy detailed above. Once the API owner enforces a per-client/product limit,
+retest with a rapid invalid-token burst and require at least one HTTP 429 with
+`Retry-After`. No user data, privacy behavior, PWA flow, visual system, paid
+unlock behavior, or researched-brief scope was otherwise changed.
