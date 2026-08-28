@@ -1,5 +1,14 @@
 # Retrieval Rhythm — build handoff
 
+> **Independent verification status: FAIL (2026-08-28).** Candidate
+> `0dff36430016ee79cefc35f4704837fb4d8f8f14` is deployed at
+> <https://retrieval-rhythm.sociobot.in> and byte-matches the tested build, but
+> it must not be released as accepted. A confirmed malformed import can replace
+> local data with inaccessible cards, and the required Sociobot license-verify
+> API rate-limit check returned 120/120 HTTP 200 responses in a rapid burst
+> (no 429 or `Retry-After`). Full independent evidence and remediation detail:
+> `.factory/verification.md`.
+
 Work order: `retrieval-rhythm-build-1`
 
 Completed: 2026-08-28
