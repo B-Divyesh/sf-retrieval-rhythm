@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 test('adds a fact, recalls it, explains timing, and persists', async ({ page }) => {
+  const runtimeErrors: string[] = [];
+  page.on('pageerror', (error) => runtimeErrors.push(error.message));
+  page.on('console', (message) => { if (message.type() === 'error') runtimeErrors.push(message.text()); });
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Retrieval Rhythm');
   await expect(page.getByRole('heading', { name: /Remember the fact/i })).toBeVisible();
@@ -23,6 +26,7 @@ test('adds a fact, recalls it, explains timing, and persists', async ({ page }) 
 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'You’re caught up.' })).toBeVisible();
+  expect(runtimeErrors).toEqual([]);
 });
 
 test('has no serious accessibility violations on empty state', async ({ page }) => {

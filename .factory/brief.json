@@ -1,0 +1,22 @@
+{
+  "slug": "retrieval-rhythm",
+  "title": "Retrieval Rhythm",
+  "territory": "utilities",
+  "user": "A self-learner who wants to remember a small set of facts without learning an unfamiliar flashcard grading system.",
+  "evidence": [
+    { "url": "https://hn.algolia.com/api/v1/items/44211502", "date": "2025-06-07", "quote_or_summary": "Asks why flashcard apps make the learner rate Good/Average/Bad instead of knowing how memorization is going." },
+    { "url": "https://github.com/logseq/logseq/issues/4484", "date": "2022-03-08", "quote_or_summary": "A 22-reaction SRS improvement request asks for timer-based review, daily limits, more answer options, and better review controls." }
+  ],
+  "recurrence": "Two independent public requests; self-scoring and opaque review settings recur across mainstream SRS workflows. Severity is medium: the friction prevents a daily habit rather than merely inconveniencing an existing one.",
+  "current_workaround": "Use Anki/Logseq buttons and guess a confidence rating, or abandon review after a few days.",
+  "incumbents_and_gap": "Anki, RemNote, Logseq, and Mochi schedule cards, but make the learner operate the scheduler. The gap is a tiny recall practice that infers difficulty from a typed answer, latency, and retries while showing the reason for the next prompt.",
+  "smallest_useful_product": "Offline PWA: create 20–100 prompt/answer items, answer by typing, receive transparent retry timing, and see a one-screen ‘due because…’ explanation. Non-goals: AI card generation, shared decks, and a full note app.",
+  "success_measure": "In a four-week cohort, at least 35% of users with 20+ items complete review on 12 distinct days without changing a scheduling setting.",
+  "artifact_class": "pwa-offline",
+  "monetization": "freemium — free single collection; paid local export, multiple collections, and advanced review history without charging for core memorization.",
+  "constraints": "Local-first data and export; never claim the inferred score is a learning diagnosis; keyboard and screen-reader support; no copyrighted deck bundle.",
+  "est_build_effort": "M",
+  "why_distinct": "It removes confidence buttons rather than cloning a card database or wrapping an LLM around Anki.",
+  "confidence": 4,
+  "state": "RESEARCHED"
+}

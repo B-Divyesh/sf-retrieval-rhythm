@@ -107,6 +107,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--sun); }
 .rhythm-node { width: 16px; height: 16px; margin-top: 4px; border-radius: 50%; background: var(--success); box-shadow: 0 0 18px rgba(138, 240, 169, .45); }
 .is-retry .rhythm-node { background: var(--sun); box-shadow: 0 0 18px rgba(255, 213, 138, .35); }
 .complete-state, .error-state { width: min(680px, calc(100% - 40px)); margin: 0 auto; padding: 110px 0; text-align: center; }
+.loading-state { min-height: 70vh; display: grid; align-content: center; justify-items: center; padding: 40px; }
+.loading-state h1 { margin: 0; font: 500 clamp(38px, 7vw, 64px)/1 Georgia, serif; }
 .complete-state p, .error-state p { margin-inline: auto; font-size: 18px; }
 .orbit { width: 120px; height: 120px; margin: 0 auto 30px; display: grid; place-items: center; border: 1px solid rgba(130, 207, 255, .23); border-radius: 50%; box-shadow: inset 0 0 40px rgba(115,242,207,.06); }
 .orbit span { width: 28px; height: 50px; border-radius: 50%; background: var(--pulse); box-shadow: 0 0 30px rgba(115,242,207,.34); }
@@ -137,6 +139,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--sun); }
 .fact-list span { color: var(--mist); }
 .fact-list small { margin-top: 5px; color: #9bb7af; }
 .icon-button { align-self: center; min-height: 40px; padding: 7px 10px; color: var(--danger); font-size: 13px; }
+.fact-actions { display: flex; gap: 8px; align-items: center; }
+.fact-actions .edit-card { color: var(--pulse); }
 .inline-empty { padding: 70px 20px; text-align: center; }
 .inline-empty p { margin-inline: auto; }
 .empty-node { display: block; width: 26px; height: 45px; margin: 0 auto 20px; border: 1px solid var(--pulse); border-radius: 50%; box-shadow: 0 0 25px rgba(115, 242, 207, .15); }

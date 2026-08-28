@@ -38,6 +38,7 @@ class RhythmApp {
   private unlocked = cachedUnlocked();
   private licenseNotice = '';
   private status = '';
+  private editingCardId: string | null = null;
 
   async start(): Promise<void> {
     captureLicense();
@@ -57,6 +58,9 @@ class RhythmApp {
       getAll<Collection>('collections'), getAll<Card>('cards'), getAll<Review>('reviews')
     ]);
     if (!this.collections.some((collection) => collection.id === this.collectionId)) {
+      this.collectionId = this.collections[0]?.id ?? '';
+    }
+    if (!this.unlocked && this.collectionId !== this.collections[0]?.id) {
       this.collectionId = this.collections[0]?.id ?? '';
     }
   }
@@ -272,11 +276,13 @@ class RhythmApp {
   }
 
   private collectionOptions(): string {
-    return this.collections.map((collection) => `<option value="${collection.id}" ${collection.id === this.collectionId ? 'selected' : ''}>${escapeHtml(collection.name)}</option>`).join('');
+    const available = this.unlocked ? this.collections : this.collections.slice(0, 1);
+    return available.map((collection) => `<option value="${collection.id}" ${collection.id === this.collectionId ? 'selected' : ''}>${escapeHtml(collection.name)}</option>`).join('');
   }
 
   private renderLibrary(main: HTMLElement): void {
     const cards = this.currentCards().sort((a, b) => b.createdAt - a.createdAt);
+    const editing = cards.find((card) => card.id === this.editingCardId);
     main.innerHTML = `
       <section class="page-heading">
         <div><p class="eyebrow">Your local fact set</p><h2>Library</h2><p>Keep this collection small enough to return to. Twenty clear facts is a good start.</p></div>
@@ -284,13 +290,13 @@ class RhythmApp {
       </section>
       <section class="library-grid">
         <div class="editor-pane">
-          <h3>Add a fact</h3>
+          <h3>${editing ? 'Edit this fact' : 'Add a fact'}</h3>
           <form id="card-form" novalidate>
-            <label for="prompt">Prompt</label><textarea id="prompt" name="prompt" rows="3" required></textarea>
-            <label for="answer">Accepted answer</label><input id="answer" name="answer" required aria-describedby="answer-note form-status">
+            <label for="prompt">Prompt</label><textarea id="prompt" name="prompt" rows="3" required>${editing ? escapeHtml(editing.prompt) : ''}</textarea>
+            <label for="answer">Accepted answer</label><input id="answer" name="answer" required aria-describedby="answer-note form-status" value="${editing ? escapeHtml(editing.answer) : ''}">
             <p id="answer-note" class="field-help">For alternatives, separate answers with a semicolon.</p>
             <p id="form-status" class="field-error" aria-live="polite"></p>
-            <button type="submit" class="primary">Add fact</button>
+            <button type="submit" class="primary">${editing ? 'Save changes' : 'Add fact'}</button>${editing ? ' <button type="button" id="cancel-edit">Cancel</button>' : ''}
           </form>
           <details class="bulk-add"><summary>Add many at once</summary>
             <form id="bulk-form"><label for="bulk">One fact per line: prompt, then a tab, then answer</label><textarea id="bulk" name="bulk" rows="7" placeholder="Capital of Senegal&#9;Dakar"></textarea><p class="field-error" id="bulk-error" aria-live="polite"></p><button type="submit">Add lines</button></form>
@@ -301,7 +307,7 @@ class RhythmApp {
             <div class="toolbar-actions"><button id="export-json" class="quiet">Export JSON</button><button id="export-csv" class="quiet">Export CSV</button><label class="file-button">Import JSON<input id="import-file" type="file" accept="application/json,.json"></label></div>
           </div>
           ${this.status ? `<p class="status-message" role="status">${escapeHtml(this.status)}</p>` : ''}
-          ${cards.length ? `<ul class="fact-list">${cards.map((card) => `<li><div><strong>${escapeHtml(card.prompt)}</strong><span>${escapeHtml(card.answer.replaceAll(';', ' ·'))}</span><small>${escapeHtml(formatDue(card.dueAt))} · ${escapeHtml(card.dueReason)}</small></div><button class="icon-button delete-card" data-id="${card.id}" aria-label="Delete ${escapeHtml(card.prompt)}">Delete</button></li>`).join('')}</ul>` : `<div class="inline-empty"><span class="empty-node"></span><h3>No facts yet</h3><p>Add one here, or paste a tab-separated list to begin.</p></div>`}
+          ${cards.length ? `<ul class="fact-list">${cards.map((card) => `<li><div><strong>${escapeHtml(card.prompt)}</strong><span>${escapeHtml(card.answer.replaceAll(';', ' ·'))}</span><small>${escapeHtml(formatDue(card.dueAt))} · ${escapeHtml(card.dueReason)}</small></div><div class="fact-actions"><button class="icon-button edit-card" data-id="${card.id}" aria-label="Edit ${escapeHtml(card.prompt)}">Edit</button><button class="icon-button delete-card" data-id="${card.id}" aria-label="Delete ${escapeHtml(card.prompt)}">Delete</button></div></li>`).join('')}</ul>` : `<div class="inline-empty"><span class="empty-node"></span><h3>No facts yet</h3><p>Add one here, or paste a tab-separated list to begin.</p></div>`}
         </div>
       </section>
       <section class="collection-tools"><div><p class="eyebrow">Collections</p><h2>Separate a subject</h2><p>The free collection stays fully useful. Multiple collections are part of Rhythm+.</p></div>
@@ -313,9 +319,14 @@ class RhythmApp {
       this.renderView();
     });
     main.querySelector('#card-form')?.addEventListener('submit', (event) => this.addCard(event));
+    main.querySelector('#cancel-edit')?.addEventListener('click', () => { this.editingCardId = null; this.renderView(); });
     main.querySelector('#bulk-form')?.addEventListener('submit', (event) => this.addBulk(event));
     main.querySelector('#collection-form')?.addEventListener('submit', (event) => this.addCollection(event));
     main.querySelectorAll<HTMLButtonElement>('.delete-card').forEach((button) => button.addEventListener('click', () => this.deleteCard(button.dataset.id ?? '')));
+    main.querySelectorAll<HTMLButtonElement>('.edit-card').forEach((button) => button.addEventListener('click', () => {
+      this.editingCardId = button.dataset.id ?? null;
+      this.renderView().then(() => document.querySelector<HTMLTextAreaElement>('#prompt')?.focus());
+    }));
     main.querySelector('#export-json')?.addEventListener('click', () => this.exportJson());
     main.querySelector('#export-csv')?.addEventListener('click', () => this.exportCsv());
     main.querySelector<HTMLInputElement>('#import-file')?.addEventListener('change', (event) => this.importJson(event));
@@ -330,9 +341,11 @@ class RhythmApp {
     const status = form.querySelector<HTMLElement>('#form-status');
     if (!prompt || !answer) { if (status) status.textContent = 'Add both a prompt and an accepted answer.'; return; }
     const now = Date.now();
-    const card: Card = { id: crypto.randomUUID(), collectionId: this.collectionId, prompt, answer, createdAt: now, updatedAt: now, dueAt: now, stage: -1, retryCount: 0, totalCorrect: 0, totalReviews: 0, dueReason: 'New fact—ready for its first recall.' };
+    const existing = this.cards.find((card) => card.id === this.editingCardId);
+    const card: Card = existing ? { ...existing, prompt, answer, updatedAt: now } : { id: crypto.randomUUID(), collectionId: this.collectionId, prompt, answer, createdAt: now, updatedAt: now, dueAt: now, stage: -1, retryCount: 0, totalCorrect: 0, totalReviews: 0, dueReason: 'New fact—ready for its first recall.' };
     await put('cards', card);
-    this.status = `Added “${prompt}”.`;
+    this.status = `${existing ? 'Updated' : 'Added'} “${prompt}”.`;
+    this.editingCardId = null;
     await this.renderView();
     document.querySelector<HTMLTextAreaElement>('#prompt')?.focus();
   }
