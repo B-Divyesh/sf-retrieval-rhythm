@@ -42,7 +42,8 @@ limit a 120-request burst.
 - Core loop: PASS. Added a fact, rejected blank answer, recorded a mismatch
   with the one-minute transparent reason, made it due again, then recovered
   with a correct typed match and the visible eight-hour-after-one-retry
-  reason. JSON and CSV downloads included the fact and review data.
+  reason. JSON and CSV downloads included the tested fact; source inspection
+  confirms the JSON payload also includes its review array.
 - Invalid input: PASS for missing prompt/answer, missing bulk delimiter, blank
   review answer, invalid JSON backup, and cancellation/confirmation boundary.
 - Import data integrity: **FAIL**; see High-1 below.
