@@ -46,6 +46,36 @@ test('supports the skip link and numbered keyboard navigation', async ({ page })
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
 });
 
+test('keeps every visible Library target at least 44 by 44 CSS pixels at 390 px', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add your first facts' }).click();
+  await page.getByLabel('Prompt', { exact: true }).fill('Touch target probe');
+  await page.getByLabel('Accepted answer').fill('Forty-four pixels');
+  await page.getByRole('button', { name: 'Add fact' }).click();
+
+  const targets = [
+    ['home wordmark', page.getByRole('link', { name: 'Retrieval Rhythm home' })],
+    ['Export JSON', page.getByRole('button', { name: 'Export JSON' })],
+    ['Export CSV', page.getByRole('button', { name: 'Export CSV' })],
+    ['Import JSON', page.locator('label.file-button')],
+    ['Edit fact', page.getByRole('button', { name: 'Edit Touch target probe' })],
+    ['Delete fact', page.getByRole('button', { name: 'Delete Touch target probe' })]
+  ] as const;
+  const undersized: string[] = [];
+
+  for (const [name, target] of targets) {
+    await expect(target).toBeVisible();
+    const box = await target.boundingBox();
+    expect(box, `${name} must have a layout box`).not.toBeNull();
+    if (box && (box.width < 44 || box.height < 44)) {
+      undersized.push(`${name}: ${box.width.toFixed(1)}x${box.height.toFixed(1)}`);
+    }
+  }
+
+  expect(undersized, 'Visible touch targets smaller than 44x44 CSS pixels').toEqual([]);
+});
+
 test('loads and retains the local interface offline', async ({ page, context }) => {
   await page.goto('/');
   await page.evaluate(() => navigator.serviceWorker.ready);

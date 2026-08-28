@@ -37,7 +37,7 @@ a:hover { color: #a9f9e4; }
 .skip-link:focus { transform: translateY(0); }
 
 .site-header { min-height: 84px; display: flex; align-items: center; gap: 40px; padding: 16px clamp(20px, 5vw, 72px); border-bottom: 1px solid var(--line); background: rgba(6, 24, 23, .84); backdrop-filter: blur(18px); position: relative; z-index: 10; }
-.wordmark { display: flex; align-items: center; gap: 12px; color: var(--paper); text-decoration: none; white-space: nowrap; }
+.wordmark { min-height: 44px; display: flex; align-items: center; gap: 12px; color: var(--paper); text-decoration: none; white-space: nowrap; }
 .wordmark h1 { margin: 0; font: 600 20px/1.1 Georgia, serif; letter-spacing: -.02em; }
 .mark { width: 34px; height: 34px; display: flex; align-items: end; justify-content: center; gap: 3px; padding: 6px; border: 1px solid rgba(115, 242, 207, .35); border-radius: 10px; background: rgba(115, 242, 207, .07); }
 .mark i { width: 5px; background: var(--pulse); border-radius: 4px; }
@@ -128,7 +128,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--sun); }
 .facts-toolbar { display: flex; justify-content: space-between; align-items: start; gap: 22px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
 .facts-toolbar p { margin: 2px 0 0; font-size: 14px; }
 .toolbar-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; }
-.quiet, .file-button { min-height: 40px; padding: 8px 11px; font-size: 13px; }
+.quiet, .file-button { min-height: 44px; padding: 8px 11px; font-size: 13px; }
 .file-button { display: inline-flex; align-items: center; }
 .file-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
 .status-message { padding: 10px 14px; border-radius: 10px; background: rgba(115, 242, 207, .1); color: var(--pulse); }
@@ -138,7 +138,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--sun); }
 .fact-list strong, .fact-list span, .fact-list small { overflow-wrap: anywhere; }
 .fact-list span { color: var(--mist); }
 .fact-list small { margin-top: 5px; color: #9bb7af; }
-.icon-button { align-self: center; min-height: 40px; padding: 7px 10px; color: var(--danger); font-size: 13px; }
+.icon-button { align-self: center; min-width: 44px; min-height: 44px; padding: 7px 10px; color: var(--danger); font-size: 13px; }
 .fact-actions { display: flex; gap: 8px; align-items: center; }
 .fact-actions .edit-card { color: var(--pulse); }
 .inline-empty { padding: 70px 20px; text-align: center; }
