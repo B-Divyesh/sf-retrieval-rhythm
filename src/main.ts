@@ -1,5 +1,6 @@
 import './style.css';
-import { ensureCollection, getAll, put, remove, replaceAll } from './db';
+import { ensureCollection, getAll, getLatestImportBackup, put, remove, replaceAll, type ImportBackup } from './db';
+import { validateImportPayload } from './import';
 import { formatDue, judgeAnswer, schedule } from './scheduler';
 import type { Card, Collection, Review } from './types';
 import { cachedUnlocked, captureLicense, checkoutUrl, getLicense, removeLicense, saveLicense, verifyLicense } from './license';
@@ -39,6 +40,7 @@ class RhythmApp {
   private licenseNotice = '';
   private status = '';
   private editingCardId: string | null = null;
+  private importBackup: ImportBackup | null = null;
 
   async start(): Promise<void> {
     captureLicense();
@@ -54,8 +56,8 @@ class RhythmApp {
   }
 
   private async load(): Promise<void> {
-    [this.collections, this.cards, this.reviews] = await Promise.all([
-      getAll<Collection>('collections'), getAll<Card>('cards'), getAll<Review>('reviews')
+    [this.collections, this.cards, this.reviews, this.importBackup] = await Promise.all([
+      getAll<Collection>('collections'), getAll<Card>('cards'), getAll<Review>('reviews'), getLatestImportBackup()
     ]);
     if (!this.collections.some((collection) => collection.id === this.collectionId)) {
       this.collectionId = this.collections[0]?.id ?? '';
@@ -307,6 +309,7 @@ class RhythmApp {
             <div class="toolbar-actions"><button id="export-json" class="quiet">Export JSON</button><button id="export-csv" class="quiet">Export CSV</button><label class="file-button">Import JSON<input id="import-file" type="file" accept="application/json,.json"></label></div>
           </div>
           ${this.status ? `<p class="status-message" role="status">${escapeHtml(this.status)}</p>` : ''}
+          ${this.importBackup ? `<button id="restore-import" class="quiet">Restore data from before your last import</button>` : ''}
           ${cards.length ? `<ul class="fact-list">${cards.map((card) => `<li><div><strong>${escapeHtml(card.prompt)}</strong><span>${escapeHtml(card.answer.replaceAll(';', ' ·'))}</span><small>${escapeHtml(formatDue(card.dueAt))} · ${escapeHtml(card.dueReason)}</small></div><div class="fact-actions"><button class="icon-button edit-card" data-id="${card.id}" aria-label="Edit ${escapeHtml(card.prompt)}">Edit</button><button class="icon-button delete-card" data-id="${card.id}" aria-label="Delete ${escapeHtml(card.prompt)}">Delete</button></div></li>`).join('')}</ul>` : `<div class="inline-empty"><span class="empty-node"></span><h3>No facts yet</h3><p>Add one here, or paste a tab-separated list to begin.</p></div>`}
         </div>
       </section>
@@ -330,6 +333,7 @@ class RhythmApp {
     main.querySelector('#export-json')?.addEventListener('click', () => this.exportJson());
     main.querySelector('#export-csv')?.addEventListener('click', () => this.exportCsv());
     main.querySelector<HTMLInputElement>('#import-file')?.addEventListener('change', (event) => this.importJson(event));
+    main.querySelector('#restore-import')?.addEventListener('click', () => this.restoreImportBackup());
   }
 
   private async addCard(event: Event): Promise<void> {
@@ -404,18 +408,30 @@ class RhythmApp {
     const file = input.files?.[0];
     if (!file) return;
     try {
-      const payload = JSON.parse(await file.text()) as { collections?: Collection[]; cards?: Card[]; reviews?: Review[] };
-      if (!Array.isArray(payload.collections) || !payload.collections.length || !Array.isArray(payload.cards)) throw new Error('That file is not a Retrieval Rhythm backup.');
-      if (!payload.cards.every((card) => card.id && card.collectionId && card.prompt && card.answer && Number.isFinite(card.dueAt))) throw new Error('Some facts are missing required fields.');
+      const payload = validateImportPayload(JSON.parse(await file.text()));
       if (!confirm(`Replace local data with ${payload.cards.length} imported facts? Export first if you need a backup.`)) return;
-      await replaceAll({ collections: payload.collections, cards: payload.cards, reviews: payload.reviews ?? [] });
+      await replaceAll(payload, {
+        id: crypto.randomUUID(), createdAt: Date.now(), collections: this.collections, cards: this.cards, reviews: this.reviews
+      });
       this.collectionId = payload.collections[0]!.id;
-      this.status = `Imported ${payload.cards.length} facts.`;
+      localStorage.setItem('rhythm:collection', this.collectionId);
+      this.status = `Imported ${payload.cards.length} facts. Your previous data is saved on this device.`;
       await this.renderView();
     } catch (error) {
       this.status = error instanceof Error ? error.message : 'Import failed. Choose a valid JSON backup.';
       await this.renderView();
     }
+  }
+
+  private async restoreImportBackup(): Promise<void> {
+    const backup = this.importBackup;
+    if (!backup || !confirm(`Restore the ${backup.cards.length} facts from before your last import? This replaces the current data.`)) return;
+    await replaceAll(backup);
+    await remove('importBackups', backup.id);
+    this.collectionId = backup.collections[0]?.id ?? '';
+    localStorage.setItem('rhythm:collection', this.collectionId);
+    this.status = `Restored ${backup.cards.length} facts from before the import.`;
+    await this.renderView();
   }
 
   private renderProgress(main: HTMLElement): void {

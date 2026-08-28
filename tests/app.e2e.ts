@@ -36,6 +36,16 @@ test('has no serious accessibility violations on empty state', async ({ page }) 
   expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
 });
 
+test('supports the skip link and numbered keyboard navigation', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Skip to practice' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('main')).toBeFocused();
+  await page.keyboard.press('2');
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+});
+
 test('loads and retains the local interface offline', async ({ page, context }) => {
   await page.goto('/');
   await page.evaluate(() => navigator.serviceWorker.ready);
@@ -51,4 +61,31 @@ test('loads and retains the local interface offline', async ({ page, context }) 
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Retrieval Rhythm');
   await expect(page.getByText('Offline · changes stay local')).toBeVisible();
+});
+
+test('rejects an orphan import without replacing facts, and can restore a valid replacement', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add your first facts' }).click();
+  await page.getByLabel('Prompt', { exact: true }).fill('Local fact');
+  await page.getByLabel('Accepted answer').fill('Keep me');
+  await page.getByRole('button', { name: 'Add fact' }).click();
+
+  let replacementPrompted = false;
+  const rejectUnexpectedReplacement = (dialog: { dismiss(): Promise<void> }) => { replacementPrompted = true; void dialog.dismiss(); };
+  page.on('dialog', rejectUnexpectedReplacement);
+  await page.locator('#import-file').setInputFiles('tests/fixtures/orphan-import.json');
+  await expect(page.getByText('A fact refers to a collection that is not in this backup.')).toBeVisible();
+  await expect(page.getByText('Local fact', { exact: true })).toBeVisible();
+  expect(replacementPrompted).toBe(false);
+  page.off('dialog', rejectUnexpectedReplacement);
+
+  page.once('dialog', (dialog) => void dialog.accept());
+  await page.locator('#import-file').setInputFiles('tests/fixtures/valid-import.json');
+  await expect(page.getByText('Imported fact', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Restore data from before your last import' })).toBeVisible();
+
+  page.once('dialog', (dialog) => void dialog.accept());
+  await page.getByRole('button', { name: 'Restore data from before your last import' }).click();
+  await expect(page.getByText('Local fact', { exact: true })).toBeVisible();
+  await expect(page.getByText('Imported fact', { exact: true })).not.toBeVisible();
 });

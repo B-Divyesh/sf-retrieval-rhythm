@@ -6,7 +6,7 @@ self.addEventListener('install', (event) => {
     const cache = await caches.open(VERSION);
     const response = await fetch(new Request('/', { cache: 'reload' }));
     const html = await response.clone().text();
-    const builtAssets = Array.from(html.matchAll(/(?:src|href)="(\/assets\/[^\"]+)"/g), (match) => match[1]);
+    const builtAssets = Array.from(html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g), (match) => match[1]);
     await cache.put('/', response);
     const urls = Array.from(new Set([...SHELL.filter((url) => url !== '/'), ...builtAssets]));
     await Promise.all(urls.map(async (url) => {

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "collections": [{ "id": "only", "name": "Imported", "createdAt": 1 }],
+  "cards": [{
+    "id": "orphan", "collectionId": "missing", "prompt": "Lost fact", "answer": "Nope",
+    "createdAt": 1, "updatedAt": 1, "dueAt": 1, "stage": -1, "retryCount": 0,
+    "totalCorrect": 0, "totalReviews": 0, "dueReason": "New"
+  }],
+  "reviews": []
+}

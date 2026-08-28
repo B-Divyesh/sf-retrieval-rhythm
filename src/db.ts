@@ -1,7 +1,16 @@
 import type { Card, Collection, Review } from './types';
 
 const DB_NAME = 'retrieval-rhythm';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
+type StoreName = 'collections' | 'cards' | 'reviews' | 'importBackups';
+
+export interface ImportBackup {
+  id: string;
+  createdAt: number;
+  collections: Collection[];
+  cards: Card[];
+  reviews: Review[];
+}
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -17,6 +26,7 @@ function openDatabase(): Promise<IDBDatabase> {
         const reviews = database.createObjectStore('reviews', { keyPath: 'id' });
         reviews.createIndex('collectionId', 'collectionId');
       }
+      if (!database.objectStoreNames.contains('importBackups')) database.createObjectStore('importBackups', { keyPath: 'id' });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error('Could not open local storage.'));
@@ -30,20 +40,20 @@ function requestResult<T>(request: IDBRequest<T>): Promise<T> {
   });
 }
 
-async function store(mode: IDBTransactionMode, name: string): Promise<IDBObjectStore> {
+async function store(mode: IDBTransactionMode, name: StoreName): Promise<IDBObjectStore> {
   const database = await openDatabase();
   return database.transaction(name, mode).objectStore(name);
 }
 
-export async function getAll<T>(name: 'collections' | 'cards' | 'reviews'): Promise<T[]> {
+export async function getAll<T>(name: StoreName): Promise<T[]> {
   return requestResult((await store('readonly', name)).getAll()) as Promise<T[]>;
 }
 
-export async function put<T>(name: 'collections' | 'cards' | 'reviews', value: T): Promise<void> {
+export async function put<T>(name: StoreName, value: T): Promise<void> {
   await requestResult((await store('readwrite', name)).put(value));
 }
 
-export async function remove(name: 'collections' | 'cards' | 'reviews', key: string): Promise<void> {
+export async function remove(name: StoreName, key: string): Promise<void> {
   await requestResult((await store('readwrite', name)).delete(key));
 }
 
@@ -55,17 +65,23 @@ export async function ensureCollection(): Promise<Collection> {
   return collection;
 }
 
-export async function replaceAll(payload: { collections: Collection[]; cards: Card[]; reviews?: Review[] }): Promise<void> {
+export async function replaceAll(payload: { collections: Collection[]; cards: Card[]; reviews?: Review[] }, backup?: ImportBackup): Promise<void> {
   const database = await openDatabase();
   await new Promise<void>((resolve, reject) => {
-    const transaction = database.transaction(['collections', 'cards', 'reviews'], 'readwrite');
+    const transaction = database.transaction(['collections', 'cards', 'reviews', 'importBackups'], 'readwrite');
     transaction.onerror = () => reject(transaction.error ?? new Error('Import failed.'));
     transaction.oncomplete = () => resolve();
     for (const name of ['collections', 'cards', 'reviews'] as const) transaction.objectStore(name).clear();
     payload.collections.forEach((value) => transaction.objectStore('collections').put(value));
     payload.cards.forEach((value) => transaction.objectStore('cards').put(value));
     (payload.reviews ?? []).forEach((value) => transaction.objectStore('reviews').put(value));
+    if (backup) transaction.objectStore('importBackups').put(backup);
   });
+}
+
+export async function getLatestImportBackup(): Promise<ImportBackup | null> {
+  const backups = await getAll<ImportBackup>('importBackups');
+  return backups.sort((a, b) => b.createdAt - a.createdAt)[0] ?? null;
 }
 
 export async function clearDatabase(): Promise<void> {
