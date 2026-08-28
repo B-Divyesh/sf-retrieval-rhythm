@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Retrieval Rhythm interval markers</title>
+  <rect width="512" height="512" rx="112" fill="#061817"/>
+  <path d="M82 330C150 330 146 213 220 213s54 88 124 88c38 0 62-35 86-82" fill="none" stroke="#82cfff" stroke-width="18" stroke-linecap="round"/>
+  <g fill="#73f2cf" stroke="#f1fbf7" stroke-width="8">
+    <rect x="72" y="272" width="64" height="118" rx="32"/>
+    <rect x="188" y="152" width="64" height="122" rx="32"/>
+    <rect x="314" y="244" width="56" height="102" rx="28"/>
+  </g>
+  <circle cx="430" cy="210" r="22" fill="#ffd58a"/>
+</svg>
